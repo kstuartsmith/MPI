@@ -54,7 +54,7 @@ namespace mpi {
 		// in such a way to keep everything synced up both
 		// with regard to sends/receives and with types.
 		
-		var tobj = MPI.RecvText<List<int>>();	    
+		var tobj = MPI.RecvText<List<int>>(0);	    
 
 		// just to prove we did the write right. Look at the
 		// MPIServer's console for the report.

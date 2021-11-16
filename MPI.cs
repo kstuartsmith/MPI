@@ -52,7 +52,7 @@ namespace mpi {
 	private static StreamReader incoming;
 	private static StreamWriter outgoing;
 
-	private static Queue<Message> incomingQueue;
+	private static List<Message> incomingQueue;
 	private static Queue<Message> outgoingQueue;
 
 	// Intended to be a dictionary of barriers, but most
@@ -112,6 +112,8 @@ namespace mpi {
 	    return msg;
 	}
 
+	
+
 	private static void EnqueueIncoming(Message msg) {
 	    if (msg.Source < 0)
 		// these are control messages, not data.
@@ -120,17 +122,28 @@ namespace mpi {
 		HandleOutOfBand(msg);
 	    else
 		lock (incomingQueue) {
-		    incomingQueue.Enqueue(msg);
+		    incomingQueue.Add(msg);
 		    Monitor.PulseAll(incomingQueue);
 		}
 	}
 
-	private static Message DequeueIncoming() {
+	private static Message DequeueIncoming(long source) {
 	    Message msg;
+	    int ndx = 0;
+	    int searchQueue() {
+		for (int i = 0; i < incomingQueue.Count; i++)
+		    if (incomingQueue[i].Source == source)
+			return i;
+		return -1;
+	    }
+
 	    lock (incomingQueue) {
-		while (incomingQueue.Count == 0)
+		while (incomingQueue.Count == 0 ||
+		       (source != -1 && (ndx = searchQueue()) == -1))
 		    Monitor.Wait(incomingQueue);
-		msg = incomingQueue.Dequeue();
+		
+		msg = incomingQueue[ndx];
+		incomingQueue.RemoveAt(ndx);
 	    }
 	    return msg;
 	}
@@ -240,8 +253,8 @@ namespace mpi {
 	// may be an argument for letting the user get hold of an entire
 	// Message, including header information: We'll see...
 	//
-	public static Message RecvMsg() =>
-	    DequeueIncoming();
+	public static Message RecvMsg(long source = -1) =>
+	    DequeueIncoming(source);
 
 	////////// MPI.RecvText //////////
 	// This is useful: given a type, return the reconstituted message
@@ -249,8 +262,8 @@ namespace mpi {
 	// typically use this interface as opposed to RecvMsg. Once again:
 	// the user is responsible for being sure the casting makes sense.
 	//
-	public static T RecvText<T>() =>
-	    DequeueIncoming().ToType<T>();
+	public static T RecvText<T>(long source = -1) =>
+	    DequeueIncoming(source).ToType<T>();
 
 	////////// MPI.Barrier //////////
 	// Establish and wait on a Barrier. This is a blocking call and
