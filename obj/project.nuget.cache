@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "BbgUVeT10P8t9Eh5uAU4olVcpQZmLfsDwmR+TdRd6oHr5bDMCu6necxS+zPAB30F5SipcKaRmGJPoBxehbnhbA==",
+  "success": true,
+  "projectFilePath": "/Users/jpramassini/Desktop/Fall 2021 Semester Materials/COPADS/MPI/MPI.csproj",
+  "expectedPackageFiles": [
+    "/Users/jpramassini/.nuget/packages/newtonsoft.json/13.0.1/newtonsoft.json.13.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}
