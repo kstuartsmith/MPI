@@ -85,9 +85,9 @@ namespace mpi {
                 if (MPI.IAm == MPI.NodeCount - 1)
                     MPI.Print("reduction: " + reduceThis);
 
-                // long reduceAllThis = MPI.IAm + 1;
-                // MPI.ReduceAll<long>(ref reduceAllThis, Product);
-                // MPI.Print("Reduce all: " + reduceAllThis);
+                long reduceAllThis = MPI.IAm + 1;
+                MPI.ReduceAll<long>(ref reduceAllThis, Product);
+                MPI.Print("Reduce all: " + reduceAllThis);
             }
 
             MPI.Barrier(1);

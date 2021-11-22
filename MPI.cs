@@ -382,16 +382,17 @@ namespace mpi {
             MPI.Barrier(83);
         }
 
-        public static int findBroadcastRound(long root) {
+        public static int findBroadcastLevel(long root) {
             var addrSize = BitOperations.Log2((ulong)MPI.NodeCount);
 
             for (int i = addrSize - 1; i >= 0; i--) {
                 var mask = 1 << i;
                 var result = (root ^ IAm) & mask;
                 if (result != 0) {
-                    return i + 1;
+                    return i;
                 }
             }
+            return 0; // This is the source, as there are no different digits.
         }
 
         public static void BroadcastJP<T>(ref T text, long root) {
@@ -401,61 +402,40 @@ namespace mpi {
             Boolean isSource = root == IAm;
             Boolean msgReceived = false;
 
-            // TODO: FIND HIGHEST ORDER BIT NOT MATCHING TO DETERMINE "LEVEL" aka number of msgs to bcast
+            var bCastLevel = findBroadcastLevel(root);
+            // These two lines are necessary to "calibrate" where in the process
+            mask <<= bCastLevel;
+            addrSize -= bCastLevel;
 
-            // var xorWithRoot = root ^ IAm;
-            var isLastDimension = (root ^ IAm) & lastDimMask;
-            MPI.Print("isLastDimension: " + isLastDimension);
-
-            if (isLastDimension == 0) {
-                while (addrSize > 0) {
-                    var low = IAm & ~mask;
-                    var high = IAm | mask;
-                    var iamLow = IAm == low;
-
-                    // This very obscure algorithm is a reduction of a much more
-                    // transparent algorithm, but that required far more operations
-                    // and tests to be performed. What is left is the kernel.
-
-                    if (isSource || msgReceived) {
-                        // DoSend (iamlow ? high : low);
-                        if (Debugging)
-                            Console.WriteLine("{0} send to {1}",
-                                       MPI.IAm, iamLow ? high : low);
-                        MPI.SendMsg(iamLow ? high : low, text);
-                    } else {
-                        // DoRecv (iamlow ? high : low);
-                        if (Debugging)
-                            Console.WriteLine("{0} recv fr {1}",
-                                       MPI.IAm, iamLow ? high : low);
-                        text = MPI.RecvText<T>();
-                        msgReceived = true; // We have received the message, so switch to send mode.
-                        if (Debugging)
-                            Console.WriteLine("{0} received {1}", MPI.IAm, text);
-                    }
-
-                    // on to the next dimension. nodes that "sent" at the former
-                    // fold are no longer participating.
-
-                    addrSize--;
-                    mask <<= 1;
-                }
-            } else {
-                var low = IAm & ~lastDimMask;
-                var high = IAm | lastDimMask;
+            while (addrSize > 0) {
+                var low = IAm & ~mask;
+                var high = IAm | mask;
                 var iamLow = IAm == low;
-                if (Debugging)
-                    Console.WriteLine("{0} recv fr {1}",
-                               MPI.IAm, iamLow ? high : low);
-                text = MPI.RecvText<T>();
-                msgReceived = true; // We have received the message, so switch to send mode.
-                if (Debugging)
-                    Console.WriteLine("{0} received {1}", MPI.IAm, text);
-            }
 
-            // if a "finished" node goes ahead, it could really mess up
-            // the rest of the pattern by injecting a send that gets
-            // interpreted as being part of the reduction.
+                // This very obscure algorithm is a reduction of a much more
+                // transparent algorithm, but that required far more operations
+                // and tests to be performed. What is left is the kernel.
+
+                if (isSource || msgReceived) {
+                    if (Debugging)
+                        Console.WriteLine("{0} send to {1}",
+                                   MPI.IAm, iamLow ? high : low);
+                    MPI.SendMsg(iamLow ? high : low, text);
+                } else {
+                    if (Debugging)
+                        Console.WriteLine("{0} recv fr {1}",
+                                   MPI.IAm, iamLow ? high : low);
+                    text = MPI.RecvText<T>();
+                    msgReceived = true; // We have received the message, so switch to send mode.
+                    if (Debugging)
+                        Console.WriteLine("{0} received {1}", MPI.IAm, text);
+                }
+
+                // on to the next dimension.
+
+                addrSize--;
+                mask <<= 1;
+            }
 
             MPI.Barrier(73);
         }
