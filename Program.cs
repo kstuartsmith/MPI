@@ -86,9 +86,19 @@ namespace mpi {
 		    MPI.Print("reduction: " + reduceThis);
 	    }
 
-	    // Finally, wait for everyone to get here. The tag 30 is
-	    // not magical--can be any positive integer that all of
-	    // the nodes agree to.
+	    // finally, demonstrate broadcast...
+
+	    if (MPI.NodeCount > 1) {
+		long bData = 0;
+		if (MPI.IAm == MPI.NodeCount-1)
+		    bData = MPI.IAm;
+	    
+		MPI.Broadcast<long>(MPI.NodeCount-1, ref bData); 
+		MPI.Print("bcast: " + bData);
+	    }
+
+	    // wait for everyone to get here--technically not
+	    // necessary since Reduce and Broacast both sync.
 	    
 	    MPI.Barrier(30);
 

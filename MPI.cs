@@ -21,9 +21,12 @@ namespace mpi {
     //      12 Nov 2021: prerelease v0.1.1  K Stuart Smith
     //			added local accumulator to Reduce
     //			added completion barrier to Reduce
+    //	    17 Nov 2021: added explicit "receive from" arg
+    //			to RecvMsg calls in Reduce
+    //      27 Nov 2021: added public Broadcast
     //
     public static class MPI {
-	private static bool Debugging { get; set; }
+	public static bool Debugging { get; private set; }
 	
 	// General Properties, attributes, configuration info,
 	// and so on. Read the comments below for specfics.
@@ -296,8 +299,54 @@ namespace mpi {
 	// message is typically not repeated to the originating Node
 	// but that option can be overridden.
 	//
-	public static void Broadcast(object text, bool excludeOriginator = true) =>
+	private static void Broadcast(object text, bool excludeOriginator) =>
 	    SendMsg (ServCall.Broadcast, text, excludeOriginator ? 1 : 0);
+
+	// Here is the "more useful" public version of Broadcast that
+	// actually uses log2(NodeCount) folds (as it should). There is
+	// no reason to broadcast back to the source node.
+	//
+	public static void Broadcast<T>(long source, ref T text) {
+	    var addrSize = BitOperations.Log2((ulong)MPI.NodeCount);
+	    long mask = 1 << (addrSize-1); // fold order: addrSize ... 3, 2, 1
+
+	    while (addrSize > 0) {
+		var low = IAm & ~mask;
+		var high = IAm | mask;
+		var iAmLow = IAm == low;
+		var fold2High = (source & mask) == 0;
+
+		// this "clever" little expression determines whether a
+		// node is "participating" in this fold. It essentially
+		// compares addrSize-1 lowest bits of IAm with those of
+		// the source. If they match (xor is 0), this node will
+		// participate.
+		//
+		var participating = ((mask - 1) & (MPI.IAm ^ source)) == 0;
+
+		// this is the same mysterious logic as used in Reduce.
+		// Go there for some weak explanations.
+		
+		if (participating) {
+		    if (fold2High == iAmLow) {
+			if (Debugging)
+			    Console.WriteLine ("B {0} send to {1}",
+					       MPI.IAm, iAmLow ? high : low);
+			MPI.SendMsg(iAmLow ? high : low, text);
+		    }
+		    else {
+			if (Debugging)
+			    Console.WriteLine ("B {0} recv fr {1}",
+					       MPI.IAm, iAmLow ? high : low);
+			text = MPI.RecvText<T>(iAmLow ? high : low);
+		    }
+		}
+		
+		addrSize--;
+		mask >>= 1;
+	    }
+	    Barrier (-67);
+	}
 
 	////////// MPI.Reduce //////////
 	// From the perspective of the user, MPI.Reduce performs a
@@ -350,7 +399,7 @@ namespace mpi {
 		if (fold2high != !iamLow) {
 		    // DoSend (iamlow ? high : low);
 		    if (Debugging)
-			Console.WriteLine ("{0} send to {1}",
+			Console.WriteLine ("R {0} send to {1}",
 					   MPI.IAm, iamLow ? high : low);
 		    MPI.SendMsg (iamLow ? high : low, accumulator);
 		    break;
@@ -358,11 +407,11 @@ namespace mpi {
 		else { 
 		    // DoRecv (iamlow ? high : low);
 		    if (Debugging)
-			Console.WriteLine ("{0} recv fr {1}",
+			Console.WriteLine ("R {0} recv fr {1}",
 					   MPI.IAm, iamLow ? high : low);
-		    T recved = MPI.RecvText<T>();
+		    T recved = MPI.RecvText<T>(iamLow ? high : low);
 		    if (Debugging)
-			Console.WriteLine ("{0} received {1}", MPI.IAm, recved);
+			Console.WriteLine ("R {0} received {1}", MPI.IAm, recved);
 		    accumulator = f(recved, accumulator);
 		    if (MPI.IAm == at)
 			// copy back...
