@@ -76,44 +76,111 @@ namespace mpi {
 
                 // reduction of reduceThis via function Product with the
                 // final reduced value ending up at the "last" node. 
-                MPI.Reduce<long>(MPI.NodeCount - 1, ref reduceThis, Product);
+                // MPI.Reduce<long>(MPI.NodeCount - 1, ref reduceThis, Product);
 
                 // And, if we happen to be the colletor, we will show 
                 // that the reduction completed successfully. The result
                 // should be factorial(NodeCount).
 
-                if (MPI.IAm == MPI.NodeCount - 1)
-                    MPI.Print("reduction: " + reduceThis);
+                // if (MPI.IAm == MPI.NodeCount - 1)
+                //     MPI.Print("reduction: " + reduceThis);
 
-                long reduceAllThis = MPI.IAm + 1;
-                MPI.ReduceAll<long>(ref reduceAllThis, Product);
-                MPI.Print("Reduce all: " + reduceAllThis);
+                // long reduceAllThis = MPI.IAm + 1;
+                // MPI.ReduceAll<long>(ref reduceAllThis, Product);
+                // MPI.Print("Reduce all: " + reduceAllThis);
+
+                // var myGatherList = new List<long> { MPI.IAm, -MPI.IAm };
+                // var gatherResult = MPI.Gather<long>(7, myGatherList);
+
+                // if (MPI.IAm == 7) {
+                //     MPI.Print("Gather result: [" + string.Join(",", gatherResult) + "]");
+                // }
+
+                // var myGatherList2 = new List<long> { MPI.IAm, -(MPI.IAm) };
+                // var gatherResult2 = MPI.Gather<long>(7, myGatherList2);
+
+                // if (MPI.IAm == 7) {
+                //     MPI.Print("Gather result: [" + string.Join(",", gatherResult2) + "]");
+                // }
+
+                // var myGatherList3 = new List<long> { MPI.IAm, -(MPI.IAm) };
+                // var gatherResult3 = MPI.Gather<long>(5, myGatherList3);
+
+                // if (MPI.IAm == 5) {
+                //     MPI.Print("Gather result: [" + string.Join(",", gatherResult3) + "]");
+                // }
+
+                // var myGatherList4 = new List<long> { MPI.IAm, -(MPI.IAm) };
+                // var gatherResult4 = MPI.Gather<long>(3, myGatherList4);
+
+                // if (MPI.IAm == 3) {
+                //     MPI.Print("Gather result: [" + string.Join(",", gatherResult4) + "]");
+                // }
             }
-
-            MPI.Barrier(1);
-
 
             if (MPI.IAm == 7) {
                 // If I am the 0 node...
                 var testBroadcast = 42;
                 MPI.Print("Broadcasting from 7: " + testBroadcast);
-                MPI.BroadcastJP<int>(ref testBroadcast, 7);
+                CMPI.BroadcastJP<int>(ref testBroadcast, 7);
             } else {
                 var bCastResult = -1;
-                MPI.BroadcastJP<int>(ref bCastResult, 7);
+                CMPI.BroadcastJP<int>(ref bCastResult, 7);
                 MPI.Print("Broadcast result: " + bCastResult);
             }
 
 
             if (MPI.IAm == 7) {
-                // If I am the 0 node...
+                // If I am the 7 node...
                 var testBroadcast = 47;
                 MPI.Print("Broadcasting from 7: " + testBroadcast);
-                MPI.BroadcastJP<int>(ref testBroadcast, 7);
+                CMPI.BroadcastJP<int>(ref testBroadcast, 7);
             } else {
                 var bCastResult = -1;
-                MPI.BroadcastJP<int>(ref bCastResult, 7);
+                CMPI.BroadcastJP<int>(ref bCastResult, 7);
                 MPI.Print("Broadcast result: " + bCastResult);
+            }
+
+            var myGatherList = new List<long> { MPI.IAm, -MPI.IAm };
+            var gatherResult = CMPI.Gather<long>(7, myGatherList);
+
+            if (MPI.IAm == 7) {
+                MPI.Print("Gather result: [" + string.Join(",", gatherResult) + "]");
+            }
+
+            MPI.Barrier(13);
+
+            var myGatherList2 = new List<long> { MPI.IAm, -(MPI.IAm) };
+            var gatherResult2 = CMPI.Gather<long>(7, myGatherList2);
+
+            if (MPI.IAm == 7) {
+                MPI.Print("Gather result: [" + string.Join(",", gatherResult2) + "]");
+            }
+
+            MPI.Barrier(14);
+
+            var myGatherList3 = new List<long> { MPI.IAm, -(MPI.IAm) };
+            var gatherResult3 = CMPI.Gather<long>(7, myGatherList3);
+
+            if (MPI.IAm == 7) {
+                MPI.Print("Gather result: [" + string.Join(",", gatherResult3) + "]");
+            }
+
+            MPI.Barrier(15);
+
+            var myGatherList4 = new List<long> { MPI.IAm, -(MPI.IAm) };
+            var gatherResult4 = MPI.Gather<long>(3, myGatherList4);
+
+            if (MPI.IAm == 3) {
+                MPI.Print("Gather result: [" + string.Join(",", gatherResult4) + "]");
+            }
+            var gatherAllResult = MPI.GatherAll<long>(myGatherList);
+            MPI.Barrier(1021);
+            MPI.Print("Gather all result length: " + gatherAllResult.Count);
+            if (MPI.IAm == 3) {
+                foreach (var i in gatherAllResult) {
+                    MPI.Print("GATHER ALL RESULT PART: " + i);
+                }
             }
 
             // Finally, wait for everyone to get here. The tag 30 is
