@@ -396,7 +396,7 @@ namespace mpi {
 		// transparent algorithm, but that required far more operations
 		// and tests to be performed. What is left is the kernel.
 
-		if (fold2high != !iamLow) {
+		if (fold2high == iamLow) {
 		    // DoSend (iamlow ? high : low);
 		    if (Debugging)
 			Console.WriteLine ("R {0} send to {1}",

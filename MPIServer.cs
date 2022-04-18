@@ -5,7 +5,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 
 namespace mpi
 {
@@ -103,7 +105,7 @@ namespace mpi
 			if (encoded == null)
 			    break;
 			Message msg
-			    = JsonConvert.DeserializeObject<Message>(encoded);
+			    = JsonSerializer.Deserialize<Message>(encoded);
 			if (Debugging)
 			    Console.WriteLine ("Incoming: " + msg);
 			if (msg.Sink < 0)
@@ -119,7 +121,7 @@ namespace mpi
 			if (Debugging)
 			    Console.WriteLine ("Outgoing: " + msg);
 			string encoded
-			    = JsonConvert.SerializeObject(msg);
+			    = JsonSerializer.Serialize(msg);
 			await toNodeClient.WriteLineAsync(encoded);
 		    }
 		}));

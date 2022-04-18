@@ -1,5 +1,5 @@
-using System;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace mpi {
     public enum ServCall {
@@ -31,21 +31,21 @@ namespace mpi {
 	// servoce methods that encode and decode messages
 	//
 	public string Encode() =>
-	    JsonConvert.SerializeObject(this);
+	    JsonSerializer.Serialize(this);
 
 	public static Message Decode(string encoded) =>
-	    JsonConvert.DeserializeObject<Message>(encoded);
+	    JsonSerializer.Deserialize<Message>(encoded)!;
 
 	// a service method that converts the message text back into the
 	// type the user specifies. MPI assumes that the user knows what
 	// they are doing. I suppose we could pass type along--version 2
 	// perhaps!
 	//
-	public object ToType(Type t) =>
-	    JsonConvert.DeserializeObject(Text.ToString(), t);
+//	public object ToType(Type t) =>
+//	    JsonConvert.DeserializeObject(Text.ToString(), t);
 
 	public T ToType<T>() =>
-	    JsonConvert.DeserializeObject<T>(Text.ToString());
+	    JsonSerializer.Deserialize<T>(Text.ToString())!;
 
 	public override string ToString() =>
 	    string.Format("{0}->{1}/{3}::{2}", Source, Sink, Text, Tag);

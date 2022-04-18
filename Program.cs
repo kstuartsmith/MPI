@@ -4,7 +4,6 @@ using System.Collections.Generic;
 namespace mpi {
     class MPIProgram {
 	private static bool Debugging { get; set; }
-
 	// a couple of methods to use with MPI.Reduce. These match
 	// the delegate MPI.ReductFunc.
 	//
@@ -77,6 +76,7 @@ namespace mpi {
 		// reduction of reduceThis via function Product with the
 		// final reduced value ending up at the "last" node. 
 		MPI.Reduce<long>(MPI.NodeCount-1, ref reduceThis, Product);
+//		Collective.ReduceAll<long>(ref reduceThis, Product);
 
 		// And, if we happen to be the colletor, we will show 
 		// that the reduction completed successfully. The result
@@ -86,7 +86,7 @@ namespace mpi {
 		    MPI.Print("reduction: " + reduceThis);
 	    }
 
-	    // finally, demonstrate broadcast...
+	    // Demonstrate Broadcast...
 
 	    if (MPI.NodeCount > 1) {
 		long bData = 0;
@@ -97,9 +97,56 @@ namespace mpi {
 		MPI.Print("bcast: " + bData);
 	    }
 
+	    // demonstrating Collective.Scatter (presuming that
+	    // there are at least 3 nodes in the topology).
+
+	    string scatLine = string.Empty;
+	    List<int> scattered;
+	    if (MPI.IAm == 2) {
+		// scattering from a middle node, just for the fun
+		// of it (and it is satisfying in some weird way to
+		// not use a first/last node).
+		//
+		List<int> scatter = new();
+		scatLine = "Scattering: ";
+		for (int ndx = 0; ndx <= MPI.NodeCount; ndx++) {
+		    scatter.Add (ndx * 10 + 0);
+		    scatter.Add (ndx * 10 + 1);
+		    scatLine += $"{ndx * 10} {ndx * 10 + 1} ";
+		}
+		MPI.Print(scatLine);
+		scattered = Collective.Scatter<int>(2, scatter);
+	    }
+	    else
+		scattered = Collective.Scatter<int>(2, null);
+
+	    // now that everyone has the scattered data, we will
+	    // print in order to demonstrate that the scattered
+	    // data was partitioned optimally and scattered to
+	    // nodes in "node order."
+	    //
+	    scatLine = string.Empty;
+	    foreach (int i in scattered)
+		scatLine += $"{i} ";
+	    MPI.Print(scatLine);
+
+	    // and now, gather the scattered flock back in--to a different
+	    // pasture! Remember that scatterable contains the data that
+	    // was scattered to this node, so when this is done, we will
+	    // have effectively moved the data from node 2 to node 1 while
+	    // dragging all of the other nodes into the process as inter-
+	    // mediaries.
+
+	    List<int> gathered = Collective.Gather<int>(1, scattered);
+	    if (MPI.IAm == 1) {
+		string collected = "Gathered what was scattered: ";
+		foreach (int i in gathered)
+		    collected += $"{i} ";
+		MPI.Print(collected);
+	    }
+	   
 	    // wait for everyone to get here--technically not
-	    // necessary since Reduce and Broacast both sync.
-	    
+	    // necessary since all collectives sync anyway...
 	    MPI.Barrier(30);
 
 	    // bye, bye.
